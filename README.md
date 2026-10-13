@@ -53,7 +53,7 @@ python test_svr.py data/test/ --tune-icm      # sweep the ICM weight and thresho
 
 ## ERROR
 
-**Error before any features added**
+### **Error before any features added**
 Average error over 60 test images (gamma=2, sigma^2=0.25, threshold=25):
 
   Before processing (grayscale): 3.593e-04
@@ -64,7 +64,7 @@ Average error over 60 test images (gamma=2, sigma^2=0.25, threshold=25):
 
 
 
-**Error after luminescence histogram and gradient features added**
+### **Error after luminescence histogram and gradient features added**
 
 Average error over 60 test images (gamma=2, sigma^2=0.25, threshold=25):
 
@@ -74,3 +74,12 @@ Average error over 60 test images (gamma=2, sigma^2=0.25, threshold=25):
   
   With regressor and ICM:        3.334e-04   (7.2% lower than grayscale)
 
+### **Error after we convert RGB to CIELAB instead of YUV**
+
+Average error over 57 test images (gamma=2, sigma^2=0.25, threshold=25, boost=1):
+
+  Before processing (grayscale): 3.633e-04
+
+  With regressor only (no ICM):  3.400e-04   (6.4% lower than grayscale)
+  
+  With regressor and ICM:        3.397e-04   (6.5% lower than grayscale)
