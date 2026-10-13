@@ -51,32 +51,16 @@ python test_svr.py data/test/ --tune-icm      # sweep the ICM weight and thresho
 
 `test_svr.py` reads `<models-dir>/config.json` and builds features exactly as training did, so we don't need to repeat the feature flags at test time.
 
-## ERROR
+## Features Added
 
-### **Error before any features added**
-Average error over 60 test images (gamma=2, sigma^2=0.25, threshold=25):
+1) Added luminescence histogram and gradient features
 
-  Before processing (grayscale): 3.593e-04
-  
-  With regressor only (no ICM):  3.444e-04   (4.1% lower than grayscale)
-  
-  With regressor and ICM:        3.422e-04   (4.8% lower than grayscale)
+2) Instead of converting RBG to YUV, we convert RGB to CIELAB color space
 
 
+### **Error**
 
-### **Error after luminescence histogram and gradient features added**
-
-Average error over 60 test images (gamma=2, sigma^2=0.25, threshold=25):
-
-  Before processing (grayscale): 3.593e-04
-  
-  With regressor only (no ICM):  3.416e-04   (4.9% lower than grayscale)
-  
-  With regressor and ICM:        3.334e-04   (7.2% lower than grayscale)
-
-### **Error after we convert RGB to CIELAB instead of YUV**
-
-Average error over 57 test images (gamma=2, sigma^2=0.25, threshold=25, boost=1):
+Average error  (gamma=2, sigma^2=0.25, threshold=25):
 
   Before processing (grayscale): 3.633e-04
 
