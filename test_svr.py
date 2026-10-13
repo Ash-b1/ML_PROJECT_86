@@ -9,16 +9,17 @@ import joblib
 import numpy as np
 from skimage.io import imread, imsave
 from skimage.util import img_as_float, img_as_ubyte
+from skimage.color import rgb2lab, lab2rgb
 
-from train_svr import (rgb_to_yuv, segment_gray, superpixel_features,
+from train_svr import (segment_gray, superpixel_features,
                    superpixel_patches, touching_pairs)
 
-from constants import (U_MAX, V_MAX, RGB_FROM_YUV, WEIGHT_DIFF, COVAR, THRESHOLD,
+from constants import (WEIGHT_DIFF, COVAR, THRESHOLD,
                        ICM_ITERATIONS, ITER_EPSILON, BOOST,
                        WEIGHT_DIFF_LIST, THRESHOLD_LIST)
 
-def yuv_to_rgb(yuv):
-    return np.clip(yuv @ RGB_FROM_YUV, 0, 1)
+def lab_to_rgb(lab):
+    return np.clip(lab2rgb(lab), 0, 1)
 
 
 def load_for_test(path):
@@ -26,7 +27,8 @@ def load_for_test(path):
     if raw.ndim == 2:
         return img_as_float(raw), None
     rgb = img_as_float(raw[..., :3])
-    return rgb_to_yuv(rgb)[..., 0], rgb
+    lab = rgb2lab(rgb)
+    return lab[..., 0] / 100.0, rgb
 
 
 def adjacent_pairs(segments, vecs):
@@ -45,10 +47,11 @@ def prepare(path, cfg):
     return {"path": path, "y": y, "rgb": rgb, "segments": segments,
             "feats": feats, "pairs": pairs, "dists": dists}
 
-def predict_uv(p, u_svr, v_svr, boost):
-    mu_u = np.clip(u_svr.predict(p["feats"]) * boost, -U_MAX, U_MAX)
-    mu_v = np.clip(v_svr.predict(p["feats"]) * boost, -V_MAX, V_MAX)
-    return mu_u, mu_v
+
+def predict_ab(p, a_svr, b_svr, boost):
+    a = np.clip(a_svr.predict(p["feats"]) * boost, -128, 127)
+    b = np.clip(b_svr.predict(p["feats"]) * boost, -128, 127)
+    return a, b
 
 
 def icm(mu, pairs, dists, sigma2, gamma, threshold, lo, hi, iters=ICM_ITERATIONS, tol=ITER_EPSILON):
@@ -75,13 +78,24 @@ def icm(mu, pairs, dists, sigma2, gamma, threshold, lo, hi, iters=ICM_ITERATIONS
 
 
 def colorize(p, u, v):
-    yuv = np.stack([p["y"], u[p["segments"]], v[p["segments"]]], axis=-1)
-    return yuv_to_rgb(yuv)
+    lab = np.stack([
+        p["y"] * 100.0,
+        u[p["segments"]],
+        v[p["segments"]]
+    ], axis=-1)
+    return np.clip(lab2rgb(lab), 0, 1)
 
 
 def gray_rgb(p):
     zeros = np.zeros(p["y"].shape)
-    return yuv_to_rgb(np.stack([p["y"], zeros, zeros], axis=-1))
+
+    lab = np.stack([
+        p["y"] * 100.0,
+        zeros,
+        zeros
+    ], axis=-1)
+
+    return np.clip(lab2rgb(lab), 0, 1)
 
 
 def error(pred_rgb, true_rgb):
@@ -91,10 +105,10 @@ def error(pred_rgb, true_rgb):
 def run_pipeline(p, u_svr, v_svr, args, gamma=None, threshold=None):
     gamma = args.gamma if gamma is None else gamma
     threshold = args.threshold if threshold is None else threshold
-    mu_u, mu_v = predict_uv(p, u_svr, v_svr, args.boost)
+    mu_u, mu_v = predict_ab(p, u_svr, v_svr, args.boost)
     svr_rgb = colorize(p, mu_u, mu_v)
-    u = icm(mu_u, p["pairs"], p["dists"], args.sigma2, gamma, threshold, -U_MAX, U_MAX)
-    v = icm(mu_v, p["pairs"], p["dists"], args.sigma2, gamma, threshold, -V_MAX, V_MAX)
+    u = icm(mu_u, p["pairs"], p["dists"], args.sigma2, gamma, threshold,-128, 127)
+    v = icm(mu_v, p["pairs"], p["dists"], args.sigma2, gamma, threshold,-128, 127)
     return svr_rgb, colorize(p, u, v)
 
 def load_config(models_dir):

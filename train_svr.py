@@ -16,9 +16,10 @@ from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVR
+from skimage.color import rgb2lab
 
 from constants import (N_SEGMENTS, SQUARE_SIZE, COMPACTNESS, SLIC_SIGMA,
-                       C, SVR_EPSILON, C_LIST, EPSILON_LIST, YUV_FROM_RGB,
+                       C, SVR_EPSILON, C_LIST, EPSILON_LIST,
                        MODEL, STANDARDIZE, USE_POSITION, USE_CONTEXT, USE_STATS,
                        CONTEXT_SIZE, CONTEXT_DOWN, HGB_MAX_ITER, HGB_LEARNING_RATE)
 
@@ -29,8 +30,11 @@ FEATURE_KEYS = [
 ]
 
 
-def rgb_to_yuv(img):
-    return img @ YUV_FROM_RGB
+
+def rgb_to_lab(img):
+    """Convert RGB image to CIELAB."""
+    return rgb2lab(img)
+
 
 
 def load_rgb(path):
@@ -171,16 +175,17 @@ def process_image(path, cfg, cache_dir, use_cache=True):
         print("  skip (image smaller than patch):", path)
         return None
 
-    yuv = rgb_to_yuv(img)
-    y = yuv[..., 0]
+    lab = rgb_to_lab(img)
+    y = lab[..., 0] / 100.0
     segments = segment_gray(y, cfg["n_segments"], cfg["compactness"], cfg["slic_sigma"])
     X = superpixel_features(y, segments, cfg)
-    U, V = superpixel_targets(yuv[..., 1:], segments)
+    A, B = superpixel_targets(lab[..., 1:], segments)
+
 
     if use_cache:
         os.makedirs(cache_dir, exist_ok=True)
-        np.savez_compressed(cache_file, X=X, U=U, V=V)
-    return X, U, V
+        np.savez_compressed(cache_file, X=X, U=A, V=B)
+    return X, A, B
 
 
 def make_regressor(cfg, c, eps):
