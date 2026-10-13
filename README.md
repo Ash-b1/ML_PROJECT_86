@@ -51,17 +51,26 @@ python test_svr.py data/test/ --tune-icm      # sweep the ICM weight and thresho
 
 `test_svr.py` reads `<models-dir>/config.json` and builds features exactly as training did, so we don't need to repeat the feature flags at test time.
 
-###ERROR
+## ERROR
 
 **Error before any features added**
 Average error over 60 test images (gamma=2, sigma^2=0.25, threshold=25):
+
   Before processing (grayscale): 3.593e-04
+  
   With regressor only (no ICM):  3.444e-04   (4.1% lower than grayscale)
+  
   With regressor and ICM:        3.422e-04   (4.8% lower than grayscale)
 
+
+
 **Error after luminescence histogram and gradient features added**
+
 Average error over 60 test images (gamma=2, sigma^2=0.25, threshold=25):
+
   Before processing (grayscale): 3.593e-04
+  
   With regressor only (no ICM):  3.416e-04   (4.9% lower than grayscale)
+  
   With regressor and ICM:        3.334e-04   (7.2% lower than grayscale)
 
